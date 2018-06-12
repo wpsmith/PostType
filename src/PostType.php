@@ -553,7 +553,7 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 		protected function new_fields_builder( $key = '', $args = array() ) {
 			$key = $key ? $key : $this->post_type;
 
-			return Fields::get_instance()->new_fields_builder( $key, $args );
+			return WPS\Core\Fields::get_instance()->new_fields_builder( $key, $args );
 		}
 
 		/**
