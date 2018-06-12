@@ -17,7 +17,7 @@
  * @since      0.1.0
  */
 
-namespace WPS\PostType;
+namespace WPS\PostTypes;
 
 use WPS;
 
