@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( ! class_exists( 'WPS\PostType\PostType' ) ) {
+if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 	/**
 	 * Post Type Abstract Class
 	 *
