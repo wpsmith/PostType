@@ -145,6 +145,13 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 		public $mb_priority;
 
 		/**
+		 * Array of posts.
+		 *
+		 * @var \WP_Post[]
+		 */
+		public $posts;
+
+		/**
 		 * Post_Type constructor.
 		 */
 		protected function __construct() {
@@ -322,8 +329,8 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 		protected function register_post_type( $args ) {
 			$plural_proper = ucwords( $this->get_post_type_word( $this->plural ) );
 			register_post_type( $this->post_type, wp_parse_args( $args, array(
-				'label'       => __( $plural_proper, WPS_TEXT_DOMAIN ),
-				'description' => __( 'For ' . $plural_proper, WPS_TEXT_DOMAIN ),
+				'label'       => __( $plural_proper, 'wps' ),
+				'description' => __( 'For ' . $plural_proper, 'wps' ),
 				'labels'      => $this->get_labels(),
 				'rewrite'     => $this->get_rewrite(),
 				'supports'    => $this->get_supports(),
@@ -470,26 +477,26 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 		public function create_types() {
 
 			$labels  = array(
-				'name'                       => _x( 'Types', 'Taxonomy General Name', WPS_TEXT_DOMAIN ),
-				'singular_name'              => _x( 'Type', 'Taxonomy Singular Name', WPS_TEXT_DOMAIN ),
-				'menu_name'                  => __( 'Types', WPS_TEXT_DOMAIN ),
-				'all_items'                  => __( 'All Items', WPS_TEXT_DOMAIN ),
-				'parent_item'                => __( 'Parent Item', WPS_TEXT_DOMAIN ),
-				'parent_item_colon'          => __( 'Parent Item:', WPS_TEXT_DOMAIN ),
-				'new_item_name'              => __( 'New Item Name', WPS_TEXT_DOMAIN ),
-				'add_new_item'               => __( 'Add New Item', WPS_TEXT_DOMAIN ),
-				'edit_item'                  => __( 'Edit Item', WPS_TEXT_DOMAIN ),
-				'update_item'                => __( 'Update Item', WPS_TEXT_DOMAIN ),
-				'view_item'                  => __( 'View Item', WPS_TEXT_DOMAIN ),
-				'separate_items_with_commas' => __( 'Separate items with commas', WPS_TEXT_DOMAIN ),
-				'add_or_remove_items'        => __( 'Add or remove items', WPS_TEXT_DOMAIN ),
-				'choose_from_most_used'      => __( 'Choose from the most used', WPS_TEXT_DOMAIN ),
-				'popular_items'              => __( 'Popular Items', WPS_TEXT_DOMAIN ),
-				'search_items'               => __( 'Search Items', WPS_TEXT_DOMAIN ),
-				'not_found'                  => __( 'Not Found', WPS_TEXT_DOMAIN ),
-				'no_terms'                   => __( 'No items', WPS_TEXT_DOMAIN ),
-				'items_list'                 => __( 'Items list', WPS_TEXT_DOMAIN ),
-				'items_list_navigation'      => __( 'Items list navigation', WPS_TEXT_DOMAIN ),
+				'name'                       => _x( 'Types', 'Taxonomy General Name', 'wps' ),
+				'singular_name'              => _x( 'Type', 'Taxonomy Singular Name', 'wps' ),
+				'menu_name'                  => __( 'Types', 'wps' ),
+				'all_items'                  => __( 'All Items', 'wps' ),
+				'parent_item'                => __( 'Parent Item', 'wps' ),
+				'parent_item_colon'          => __( 'Parent Item:', 'wps' ),
+				'new_item_name'              => __( 'New Item Name', 'wps' ),
+				'add_new_item'               => __( 'Add New Item', 'wps' ),
+				'edit_item'                  => __( 'Edit Item', 'wps' ),
+				'update_item'                => __( 'Update Item', 'wps' ),
+				'view_item'                  => __( 'View Item', 'wps' ),
+				'separate_items_with_commas' => __( 'Separate items with commas', 'wps' ),
+				'add_or_remove_items'        => __( 'Add or remove items', 'wps' ),
+				'choose_from_most_used'      => __( 'Choose from the most used', 'wps' ),
+				'popular_items'              => __( 'Popular Items', 'wps' ),
+				'search_items'               => __( 'Search Items', 'wps' ),
+				'not_found'                  => __( 'Not Found', 'wps' ),
+				'no_terms'                   => __( 'No items', 'wps' ),
+				'items_list'                 => __( 'Items list', 'wps' ),
+				'items_list_navigation'      => __( 'Items list navigation', 'wps' ),
 			);
 			$rewrite = array(
 				'slug'         => $this->post_type . '-type',
@@ -619,34 +626,51 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 			$plural_proper   = ucwords( $plural );
 
 			return array(
-				'name'                  => _x( $plural_proper, 'Post Type General Name', WPS_TEXT_DOMAIN ),
-				'singular_name'         => _x( $singular_proper, 'Post Type Singular Name', WPS_TEXT_DOMAIN ),
-				'menu_name'             => __( $plural_proper, WPS_TEXT_DOMAIN ),
-				'name_admin_bar'        => __( $plural_proper, WPS_TEXT_DOMAIN ),
-				'archives'              => __( "$singular_proper Archives", WPS_TEXT_DOMAIN ),
-				'attributes'            => __( "$singular_proper Attributes", WPS_TEXT_DOMAIN ),
-				'parent_item_colon'     => __( "Parent $singular_proper:", WPS_TEXT_DOMAIN ),
-				'all_items'             => __( "All $plural_proper", WPS_TEXT_DOMAIN ),
-				'add_new_item'          => __( "Add New $singular_proper", WPS_TEXT_DOMAIN ),
-				'add_new'               => __( 'Add New', WPS_TEXT_DOMAIN ),
-				'new_item'              => __( "New $singular_proper", WPS_TEXT_DOMAIN ),
-				'edit_item'             => __( "Edit $singular_proper", WPS_TEXT_DOMAIN ),
-				'update_item'           => __( "Update $singular_proper", WPS_TEXT_DOMAIN ),
-				'view_item'             => __( "View $singular_proper", WPS_TEXT_DOMAIN ),
-				'view_items'            => __( "View $plural_proper", WPS_TEXT_DOMAIN ),
-				'search_items'          => __( "Search $singular_proper", WPS_TEXT_DOMAIN ),
-				'not_found'             => __( 'Not found', WPS_TEXT_DOMAIN ),
-				'not_found_in_trash'    => __( 'Not found in Trash', WPS_TEXT_DOMAIN ),
-				'featured_image'        => __( "$singular_proper Image", WPS_TEXT_DOMAIN ),
-				'set_featured_image'    => __( "Set $singular image", WPS_TEXT_DOMAIN ),
-				'remove_featured_image' => __( "Remove $singular image", WPS_TEXT_DOMAIN ),
-				'use_featured_image'    => __( "Use as $singular image", WPS_TEXT_DOMAIN ),
-				'insert_into_item'      => __( "Insert into $singular", WPS_TEXT_DOMAIN ),
-				'uploaded_to_this_item' => __( "Uploaded to this $singular", WPS_TEXT_DOMAIN ),
-				'items_list'            => __( "$plural_proper list", WPS_TEXT_DOMAIN ),
-				'items_list_navigation' => __( "$plural_proper list navigation", WPS_TEXT_DOMAIN ),
-				'filter_items_list'     => __( "Filter $plural list", WPS_TEXT_DOMAIN ),
+				'name'                  => _x( $plural_proper, 'Post Type General Name', 'wps' ),
+				'singular_name'         => _x( $singular_proper, 'Post Type Singular Name', 'wps' ),
+				'menu_name'             => __( $plural_proper, 'wps' ),
+				'name_admin_bar'        => __( $plural_proper, 'wps' ),
+				'archives'              => __( "$singular_proper Archives", 'wps' ),
+				'attributes'            => __( "$singular_proper Attributes", 'wps' ),
+				'parent_item_colon'     => __( "Parent $singular_proper:", 'wps' ),
+				'all_items'             => __( "All $plural_proper", 'wps' ),
+				'add_new_item'          => __( "Add New $singular_proper", 'wps' ),
+				'add_new'               => __( 'Add New', 'wps' ),
+				'new_item'              => __( "New $singular_proper", 'wps' ),
+				'edit_item'             => __( "Edit $singular_proper", 'wps' ),
+				'update_item'           => __( "Update $singular_proper", 'wps' ),
+				'view_item'             => __( "View $singular_proper", 'wps' ),
+				'view_items'            => __( "View $plural_proper", 'wps' ),
+				'search_items'          => __( "Search $singular_proper", 'wps' ),
+				'not_found'             => __( 'Not found', 'wps' ),
+				'not_found_in_trash'    => __( 'Not found in Trash', 'wps' ),
+				'featured_image'        => __( "$singular_proper Image", 'wps' ),
+				'set_featured_image'    => __( "Set $singular image", 'wps' ),
+				'remove_featured_image' => __( "Remove $singular image", 'wps' ),
+				'use_featured_image'    => __( "Use as $singular image", 'wps' ),
+				'insert_into_item'      => __( "Insert into $singular", 'wps' ),
+				'uploaded_to_this_item' => __( "Uploaded to this $singular", 'wps' ),
+				'items_list'            => __( "$plural_proper list", 'wps' ),
+				'items_list_navigation' => __( "$plural_proper list navigation", 'wps' ),
+				'filter_items_list'     => __( "Filter $plural list", 'wps' ),
 			);
+		}
+
+		/**
+		 * Gets the posts for specific post type.
+		 *
+		 * @param array $args
+		 *
+		 * @return \WP_Post[]
+		 */
+		public function get_posts( $args = array() ) {
+			if ( ! empty( $this->posts ) ) {
+				return $this->posts;
+			}
+
+			$args = wp_parse_args( $args, array( 'post_type' => $this->post_type ) );
+			$this->posts = get_posts( $args );
+			return $this->posts;
 		}
 	}
 }
