@@ -145,6 +145,14 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 		public $mb_priority;
 
 		/**
+		 * Sets the priority of the yoast metabox.
+		 * Accepts 'high', 'default', or 'low'.
+		 *
+		 * @var string|bool
+		 */
+		public $yoast_priority;
+
+		/**
 		 * Array of posts.
 		 *
 		 * @var \WP_Post[]
@@ -211,6 +219,11 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 				add_action( 'genesis_entry_content', array( $this, 'gallery' ), 15 );
 			}
 
+			// Maybe fix yoast priority
+			if ( $this->yoast_priority ) {
+				add_filter( 'wpseo_metabox_prio', array( $this, 'wpseo_metabox_priority' ) );
+			}
+
 			// Maybe set priority of ACF metabox.
 			if ( $this->mb_priority && ( 'high' === $this->mb_priority || 'default' === $this->mb_priority || 'low' === $this->mb_priority ) ) {
 				add_filter( 'acf/input/meta_box_priority', array( $this, 'set_acf_metabox_priority' ), 10, 2 );
@@ -257,6 +270,19 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 			if ( method_exists( $this, 'plugins_loaded' ) ) {
 				add_action( 'plugins_loaded', array( $this, 'plugins_loaded' ) );
 			}
+		}
+
+		/**
+		 * Set WP SEO Metabox Priority to default.
+		 *
+		 * @return string
+		 */
+		public function wpseo_metabox_priority() {
+			if ( is_string( $this->yoast_priority ) && in_array( $this->yoast_priority, array( 'default', 'low', 'high' ), true ) ) {
+				return $this->yoast_priority;
+			}
+
+			return 'default';
 		}
 
 		/**
@@ -579,21 +605,30 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 			return $priority;
 		}
 
+		protected function get_metabox_context( $metabox ) {
+			$context = 'normal';
+
+			if ( in_array( $metabox, array(
+				'categorydiv',
+				'tagsdiv-post_tag',
+				'pageparentdiv',
+			), true ) ) {
+				$context = 'side';
+			} elseif ( in_array( $metabox, array(
+				'members-cp',
+			), true ) ) {
+				$context = 'advanced';
+			}
+
+			return apply_filters( 'wps_posttype_get_metabox_context', $context, $metabox, $this->post_type, $this );
+		}
+
 		/**
 		 * Remove metaboxes
 		 */
 		public function remove_metaboxes() {
-			foreach ( $this->remove_metaboxes as $metabox ) {
-				$context = 'normal';
-				if ( in_array( $metabox, array(
-					'categorydiv',
-					'tagsdiv-post_tag',
-					'pageparentdiv',
-				), true ) ) {
-					$context = 'side';
-				}
-
-				remove_meta_box( $metabox, $this->post_type, $context );
+			foreach ( $this->remove_metaboxes as $key => $metabox ) {
+				remove_meta_box( $metabox, $this->post_type, $this->get_metabox_context( $metabox ) );
 			}
 
 		}
@@ -668,8 +703,9 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 				return $this->posts;
 			}
 
-			$args = wp_parse_args( $args, array( 'post_type' => $this->post_type ) );
+			$args        = wp_parse_args( $args, array( 'post_type' => $this->post_type ) );
 			$this->posts = get_posts( $args );
+
 			return $this->posts;
 		}
 	}
