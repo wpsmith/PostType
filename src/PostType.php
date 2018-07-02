@@ -160,6 +160,13 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 		public $posts;
 
 		/**
+		 * Whether to remove SEO support for post type.
+		 *
+		 * @var bool
+		 */
+		public $remove_seo_support = false;
+
+		/**
 		 * Post_Type constructor.
 		 */
 		protected function __construct() {
@@ -168,11 +175,11 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 			$this->singular = $this->singular ? $this->singular : $this->post_type;
 
 			// Create the post type.
-			add_action( 'init', array( $this, 'create_post_type' ), 0 );
+			$this->add_action( 'init', array( $this, 'create_post_type' ), 0 );
 
 			// Maybe create Types taxonomy.
 			if ( $this->types ) {
-				add_action( 'init', array( $this, 'create_types' ), 0 );
+				$this->add_action( 'init', array( $this, 'create_types' ), 0 );
 			}
 
 			// Maybe remove post type entry meta.
@@ -192,7 +199,7 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 
 			// Maybe create taxonomy.
 			if ( method_exists( $this, 'create_taxonomy' ) ) {
-				add_action( 'init', array( $this, 'create_taxonomy' ), 0 );
+				$this->add_action( 'init', array( $this, 'create_taxonomy' ), 0 );
 			}
 
 			// Maybe create ACF fields.
@@ -263,13 +270,59 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 				add_action( 'add_meta_boxes', array( $this, 'remove_metaboxes' ), 500 );
 			}
 
+			if ( $this->remove_seo_support ) {
+				add_action( 'genesis_cpt_archives_settings_metaboxes', array(
+					$this,
+					'genesis_remove_cpt_archives_seo_settings_metaboxes',
+				) );
+
+				add_filter( 'wpseo_accessible_post_types', array( $this, 'remove_wpseo_accessible_post_type' ) );
+			}
+
 			// Initialize fields for ACF.
-			add_action( 'plugins_loaded', array( $this, 'initialize_fields' ) );
+			$this->add_action( 'plugins_loaded', array( $this, 'initialize_fields' ) );
 
 			// Maybe run plugins_loaded method.
-			if ( method_exists( $this, 'plugins_loaded' ) ) {
-				add_action( 'plugins_loaded', array( $this, 'plugins_loaded' ) );
+			foreach (
+				array(
+					'admin_menu'     => array(),
+					'admin_init'     => array(),
+					'admin_head'     => array(),
+					'plugins_loaded' => array(),
+				) as $hook => $args
+			) {
+				if ( method_exists( $this, $hook ) ) {
+					$args = wp_parse_args( $args, $this->get_hook_defaults() );
+					$this->add_action( $hook, array(
+						$this,
+						$hook,
+					), $args['priority'], $args['accepted_args'], $args['args'] );
+				}
 			}
+		}
+
+		/**
+		 * Remove Post Type from WP SEO's accessible post types.
+		 *
+		 * @param array $post_types The public post types.
+		 *
+		 * @return array
+		 */
+		public function remove_wpseo_accessible_post_type( $post_types ) {
+			return array_diff( $post_types, array( $this->post_type ) );
+		}
+
+		/**
+		 * Hook default args.
+		 *
+		 * @return array
+		 */
+		private function get_hook_defaults() {
+			return array(
+				'priority'      => 10,
+				'accepted_args' => 1,
+				'args'          => null,
+			);
 		}
 
 		/**
@@ -278,7 +331,11 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 		 * @return string
 		 */
 		public function wpseo_metabox_priority() {
-			if ( is_string( $this->yoast_priority ) && in_array( $this->yoast_priority, array( 'default', 'low', 'high' ), true ) ) {
+			if ( is_string( $this->yoast_priority ) && in_array( $this->yoast_priority, array(
+					'default',
+					'low',
+					'high'
+				), true ) ) {
 				return $this->yoast_priority;
 			}
 
@@ -547,6 +604,8 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 		/**
 		 * Gets the template loader.
 		 *
+		 * @param array $args Template Loader args.
+		 *
 		 * @return WPS\Templates\Template_Loader
 		 */
 		protected function get_template_loader( $args = array() ) {
@@ -554,10 +613,10 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 				return $this->template_loader;
 			}
 
-			// Merge Args
+			// Merge Args.
 			$args = wp_parse_args( $args, $this->get_template_loader_defaults() );
 
-			// Create template loader
+			// Create template loader.
 			$this->template_loader = new WPS\Templates\Template_Loader( $args );
 
 			return $this->template_loader;
@@ -727,10 +786,11 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 		 *                                  and functions with the same priority are executed
 		 *                                  in the order in which they were added to the action.
 		 * @param int      $accepted_args   Optional. The number of arguments the function accepts. Default 1.
+		 * @param array    $args            Args to pass to the function.
 		 */
-		public function add_action( $tag, $function_to_add, $priority = 10, $accepted_args = 1 ) {
+		public function add_action( $tag, $function_to_add, $priority = 10, $accepted_args = 1, $args = array() ) {
 			if ( did_action( $tag ) || doing_action( $tag ) ) {
-				call_user_func_array( $function_to_add, array() );
+				call_user_func_array( $function_to_add, (array) $args );
 			} else {
 				add_action( $tag, $function_to_add, $priority, $accepted_args );
 			}
