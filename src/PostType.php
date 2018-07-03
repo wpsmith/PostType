@@ -167,20 +167,19 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 		public $remove_seo_support = false;
 
 		/**
+		 * Taxonomies
+		 *
+		 * @var array
+		 */
+		public $taxonomies = array();
+
+		/**
 		 * Post_Type constructor.
 		 */
 		protected function __construct() {
 
 			$this->plural   = $this->plural ? $this->plural : $this->post_type;
 			$this->singular = $this->singular ? $this->singular : $this->post_type;
-
-			// Create the post type.
-			$this->add_action( 'init', array( $this, 'create_post_type' ), 0 );
-
-			// Maybe create Types taxonomy.
-			if ( $this->types ) {
-				$this->add_action( 'init', array( $this, 'create_types' ), 0 );
-			}
 
 			// Maybe remove post type entry meta.
 			if ( $this->remove_post_type_entry_meta ) {
@@ -192,32 +191,12 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 				add_action( 'genesis_header', array( $this, 'remove_post_type_entry_footer' ) );
 			}
 
-			// Maybe run init method.
-			if ( method_exists( $this, 'init' ) ) {
-				$this->init();
-			}
+			// Create the post type.
+			$this->add_action( 'init', array( $this, 'create_post_type' ), 0 );
 
-			// Maybe create taxonomy.
-			if ( method_exists( $this, 'create_taxonomy' ) ) {
-				$this->add_action( 'init', array( $this, 'create_taxonomy' ), 0 );
-			}
-
-			// Maybe create ACF fields.
-			if ( method_exists( $this, 'core_acf_fields' ) ) {
-				add_action( 'core_acf_fields', array( $this, 'core_acf_fields' ) );
-			}
-
-			// Maybe manage post columns.
-			if ( method_exists( $this, 'manage_posts_columns' ) ) {
-				add_filter( "manage_{$this->post_type}_posts_columns", array( $this, 'manage_posts_columns' ) );
-			}
-
-			// Maybe manage post custom columns.
-			if ( method_exists( $this, 'manage_posts_custom_column' ) ) {
-				add_action( "manage_{$this->post_type}_posts_custom_column", array(
-					$this,
-					'manage_posts_custom_column',
-				), 10, 2 );
+			// Maybe create Types taxonomy.
+			if ( $this->types ) {
+				$this->add_action( 'init', array( $this, 'create_types' ), 0 );
 			}
 
 			// Maybe append gallery or have envira gallery support.
@@ -281,6 +260,43 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 
 			// Initialize fields for ACF.
 			$this->add_action( 'plugins_loaded', array( $this, 'initialize_fields' ) );
+
+			$this->maybe_run_optional_methods();
+		}
+
+		/**
+		 * Runs optional meethods.
+		 *
+		 * If method exists, it will run them on the correct hook.
+		 */
+		protected function maybe_run_optional_methods() {
+			// Maybe create taxonomy.
+			if ( method_exists( $this, 'create_taxonomy' ) ) {
+				$this->add_action( 'init', array( $this, 'create_taxonomy' ), 0 );
+			}
+
+			// Maybe run init method.
+			if ( method_exists( $this, 'init' ) ) {
+				$this->init();
+			}
+
+			// Maybe create ACF fields.
+			if ( method_exists( $this, 'core_acf_fields' ) ) {
+				add_action( 'core_acf_fields', array( $this, 'core_acf_fields' ) );
+			}
+
+			// Maybe manage post columns.
+			if ( method_exists( $this, 'manage_posts_columns' ) ) {
+				add_filter( "manage_{$this->post_type}_posts_columns", array( $this, 'manage_posts_columns' ) );
+			}
+
+			// Maybe manage post custom columns.
+			if ( method_exists( $this, 'manage_posts_custom_column' ) ) {
+				add_action( "manage_{$this->post_type}_posts_custom_column", array(
+					$this,
+					'manage_posts_custom_column',
+				), 10, 2 );
+			}
 
 			// Maybe run plugins_loaded method.
 			foreach (
@@ -664,6 +680,13 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 			return $priority;
 		}
 
+		/**
+		 * Gets the context of a metabox by ID.
+		 *
+		 * @param string $metabox Maetabox ID.
+		 *
+		 * @return mixed|void
+		 */
 		protected function get_metabox_context( $metabox ) {
 			$context = 'normal';
 
@@ -790,6 +813,7 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 		 */
 		public function add_action( $tag, $function_to_add, $priority = 10, $accepted_args = 1, $args = array() ) {
 			if ( did_action( $tag ) || doing_action( $tag ) ) {
+//				WPS\write_log( array( $tag, \get_class( $function_to_add[0] ), $function_to_add[1] ), 'DOING' );
 				call_user_func_array( $function_to_add, (array) $args );
 			} else {
 				add_action( $tag, $function_to_add, $priority, $accepted_args );
