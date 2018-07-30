@@ -205,7 +205,7 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 				add_action( 'genesis_entry_content', array( $this, 'gallery' ), 15 );
 			}
 
-			// Maybe fix yoast priority
+			// Maybe fix yoast priority.
 			if ( $this->yoast_priority ) {
 				add_filter( 'wpseo_metabox_prio', array( $this, 'wpseo_metabox_priority' ) );
 			}
@@ -261,7 +261,62 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 			// Initialize fields for ACF.
 			$this->add_action( 'plugins_loaded', array( $this, 'initialize_fields' ) );
 
+			// Maybe add map_meta_cap filter.
+			if ( method_exists( $this, 'map_meta_cap' ) ) {
+				$this->add_action( 'plugins_loaded', array( $this, 'maybe_map_meta_cap' ) );
+			}
+
+			// Integrate with members plugin.
+			add_action( 'members_register_caps', array( $this, 'members_register_default_caps' ), 5 );
+
+			// Add capabilities to $this->get_roles().
+			add_action( 'admin_init', array( $this, 'add_caps_to_admin' ) );
+
 			$this->maybe_run_optional_methods();
+		}
+
+		/**
+		 * Gets the roles to which to add the capabilities.
+		 *
+		 * @return array
+		 */
+		protected function get_roles() {
+			return array( 'administrator' );
+		}
+
+		/**
+		 * Add the capabilities to the administrator.
+		 */
+		public function add_caps_to_admin() {
+			$args = $this->get_args();
+			if ( isset( $args['capabilities'] ) && ! empty( $args['capabilities'] ) ) {
+				foreach ( $this->get_roles() as $role ) {
+					$admin = get_role( $role );
+					foreach ( $args['capabilities'] as $meta => $capability ) {
+						$admin->add_cap( $capability );
+					}
+				}
+
+			}
+		}
+
+		/**
+		 * Integration into Members Plugin.
+		 */
+		public function members_register_default_caps() {
+
+			if ( ! function_exists( 'members_register_cap' ) ) {
+				return;
+			}
+
+			$args = $this->get_args();
+
+			if ( ! empty( $args['capability_type'] ) || ! empty( $args['capabilities'] ) ) {
+				$capabilities = $this->get_capabilities();
+				foreach ( $capabilities as $cap ) {
+					members_register_cap( $cap, array( 'label' => ucwords( str_replace( '_', ' ', $cap ) ) ) );
+				}
+			}
 		}
 
 		/**
@@ -315,6 +370,13 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 					), $args['priority'], $args['accepted_args'], $args['args'] );
 				}
 			}
+		}
+
+		/**
+		 * Add map meta cap filter.
+		 */
+		public function maybe_map_meta_cap() {
+			add_filter( 'map_meta_cap', array( $this, 'map_meta_cap' ), 10, 4 );
 		}
 
 		/**
@@ -393,9 +455,20 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 		}
 
 		/**
+		 * Default args for register_post_type.
+		 *
+		 * @return array
+		 */
+		abstract protected function get_args();
+
+		/**
 		 * Register custom post type
 		 */
-		abstract public function create_post_type();
+		public function create_post_type() {
+
+			$this->register_post_type( $this->get_args() );
+
+		}
 
 		/**
 		 * Gets supports array.
@@ -792,6 +865,44 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 		}
 
 		/**
+		 * Get custom post type capabilities.
+		 *
+		 * @return array
+		 */
+		public function get_capabilities() {
+			return array(
+				// Meta capabilities.
+				'edit_post'              => "edit_{$this->post_type}",
+				'read_post'              => "read_{$this->post_type}",
+				'delete_post'            => "delete_{$this->post_type}",
+
+				// Primitive capabilities used within map_meta_cap().
+				'create_posts'           => "edit_{$this->post_type}s",
+
+				// Primitive capabilities used outside of map_meta_cap().
+				'edit_posts'             => "edit_{$this->post_type}s",
+				'edit_others_posts'      => "edit_others_{$this->post_type}s",
+				'publish_posts'          => "publish_{$this->post_type}s",
+				'read_private_posts'     => "read_private_{$this->post_type}s",
+
+				// Post type.
+				'read'                   => 'read',
+				'delete_posts'           => "delete_{$this->post_type}s",
+				'delete_private_posts'   => "delete_private_{$this->post_type}s",
+				'delete_published_posts' => "delete_published_{$this->post_type}s",
+				'delete_others_posts'    => "delete_others_{$this->post_type}s",
+				'edit_private_posts'     => "edit_private_{$this->post_type}s",
+				'edit_published_posts'   => "edit_published_{$this->post_type}s",
+
+				// Terms.
+				'manage_post_terms'      => "manage_{$this->post_type}_terms",
+				'edit_post_terms'        => "edit_{$this->post_type}_terms",
+				'delete_post_terms'      => "delete_{$this->post_type}_terms",
+				'assign_post_terms'      => "assign_{$this->post_type}_terms"
+			);
+		}
+
+		/**
 		 * Hooks a function on to a specific action.
 		 *
 		 * Actions are the hooks that the WordPress core launches at specific points
@@ -821,4 +932,3 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 		}
 	}
 }
-
