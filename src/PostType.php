@@ -91,6 +91,13 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 		private $template_loader;
 
 		/**
+		 * Holds transient for all products.
+		 *
+		 * @var \WPS\Transients\QueryTransient
+		 */
+		public $transient = null;
+
+		/**
 		 * What metaboxes to remove.
 		 *
 		 * Supports:
@@ -335,14 +342,31 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 				$this->init();
 			}
 
+			// Maybe filter query
+			if ( method_exists( $this, 'pre_get_posts' ) ) {
+				add_action( 'pre_get_posts', array( $this, 'pre_get_posts' ) );
+			}
+
 			// Maybe create ACF fields.
 			if ( method_exists( $this, 'core_acf_fields' ) ) {
 				add_action( 'core_acf_fields', array( $this, 'core_acf_fields' ) );
 			}
 
+			// Maybe manage post columns filters.
+			if ( method_exists( $this, 'restrict_manage_posts' ) ) {
+				add_filter( 'restrict_manage_posts', array( $this, '_restrict_manage_posts' ), 10, 2 );
+				if ( method_exists( $this, 'restrict_manage_posts_pre_get_posts' ) ) {
+					add_filter( 'pre_get_posts', array( $this, 'restrict_manage_posts_pre_get_posts' ), 10, 2 );
+				}
+			}
+
 			// Maybe manage post columns.
 			if ( method_exists( $this, 'manage_posts_columns' ) ) {
 				add_filter( "manage_{$this->post_type}_posts_columns", array( $this, 'manage_posts_columns' ) );
+			}
+
+			if ( method_exists( $this, 'manage_sortable_columns' ) ) {
+				add_filter( "manage_edit-{$this->post_type}_sortable_columns", array( $this, 'manage_sortable_columns' ) );
 			}
 
 			// Maybe manage post custom columns.
@@ -370,6 +394,25 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 					), $args['priority'], $args['accepted_args'], $args['args'] );
 				}
 			}
+		}
+
+		/**
+		 * Fires before the Filter button on the Posts and Pages list tables.
+		 *
+		 * The Filter button allows sorting by date and/or category on the
+		 * Posts list table, and sorting by date on the Pages list table.
+		 *
+		 * @param string $post_type The post type slug.
+		 * @param string $which     The location of the extra table nav markup:
+		 *                          'top' or 'bottom' for WP_Posts_List_Table,
+		 *                          'bar' for WP_Media_List_Table.
+		 */
+		public function _restrict_manage_posts( $post_type, $which ) {
+			if ( $this->post_type !== $post_type ) {
+				return;
+			}
+
+			$this->restrict_manage_posts();
 		}
 
 		/**
@@ -691,13 +734,39 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 		}
 
 		/**
+		 * Gets the template loader within some initial data.
+		 *
+		 * @param array  $args Template Loader args.
+		 * @param string $name Template name.
+		 * @param array  $data Template Data args.
+		 *
+		 * @return WPS\Templates\Template_Loader
+		 */
+		protected function get_template_loader_with_data( $args = array(), $name = '', $data = array() ) {
+
+			$template_loader = $this->get_template_loader( $args );
+			$template_data   = WPS\Templates\TemplateData::get_instance();
+
+			if ( ! empty( $data ) ) {
+				foreach ( $data as $key => $value ) {
+					$template_data->update( $name, $key, $value );
+				}
+			}
+
+			$template_data->update( $name, 'template_loader', $template_loader );
+
+			return $template_loader;
+
+		}
+
+		/**
 		 * Gets the template loader.
 		 *
 		 * @param array $args Template Loader args.
 		 *
 		 * @return WPS\Templates\Template_Loader
 		 */
-		protected function get_template_loader( $args = array() ) {
+		protected function get_template_loader( $args = array(), $data = array() ) {
 			if ( $this->template_loader ) {
 				return $this->template_loader;
 			}
@@ -716,7 +785,7 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 		 *
 		 * @return array
 		 */
-		private function get_template_loader_defaults() {
+		protected function get_template_loader_defaults() {
 			return array(
 				'filter_prefix'    => 'wps_' . $this->post_type,
 				'plugin_directory' => plugin_dir_path( dirname( dirname( __FILE__ ) ) ),
@@ -929,6 +998,136 @@ if ( ! class_exists( 'WPS\PostTypes\PostType' ) ) {
 			} else {
 				add_action( $tag, $function_to_add, $priority, $accepted_args );
 			}
+		}
+
+
+		/**
+		 * Retrieve a template part.
+		 *
+		 * @uses  self::get_template_possble_parts() Create file names of templates.
+		 * @uses  self::locate_template() Retrieve the name of the highest priority template file that exists.
+		 *
+		 * @param \WPS\Templates\Template_Loader $loader Template slug.
+		 * @param string                         $slug   Template slug.
+		 * @param string                         $name   Optional. Default null.
+		 * @param bool                           $load   Optional. Default false.
+		 *
+		 * @return string
+		 */
+		public function get_template_part( $loader, $slug, $name = null, $load = true ) {
+			ob_start();
+			$loader->get_template_part( $slug, $name, $load );
+			return ob_get_clean();
+		}
+
+		/**
+		 * Get all posts for this post type.
+		 *
+		 * @return \WP_Post[]
+		 */
+		public static function get_all_posts() {
+			$query = self::get_all_query();
+
+			return $query->posts;
+		}
+
+		/**
+		 * Get all posts for this post type.
+		 *
+		 * @return \WP_Query
+		 */
+		public static function get_all_query() {
+			$instance = self::get_instance();
+
+			return $instance->transient->get();
+		}
+
+		/**
+		 * Gets the ID.
+		 *
+		 * @return false|int|string
+		 */
+		public function get_the_ID() {
+
+			$post_id = get_the_ID() ? get_the_ID() : '';
+			$post_id = '' === $post_id && isset( $_GET['post'] ) && '' !== $_GET['post'] ? $_GET['post'] : $post_id;
+			$post_id = '' === $post_id && isset( $_POST['post_ID'] ) && '' !== $_POST['post_ID'] ? $_POST['post_ID'] : $post_id;
+
+			return intval( $post_id );
+
+		}
+
+		/**
+		 * Gets the post type.
+		 *
+		 * @return bool|false|string
+		 */
+		public function get_post_type() {
+
+			$post_type = get_post_type();
+			if ( $post_type ) {
+				return $post_type;
+			}
+
+			$post_type = isset( $_REQUEST['post_type'] ) && '' !== $_REQUEST['post_type'] ? $_REQUEST['post_type'] : '';
+			if ( $post_type ) {
+				return $post_type;
+			}
+
+			$id = $this->get_the_ID();
+			if ( 0 !== $id ) {
+				$post = get_post( $id );
+
+				return $post->post_type;
+			}
+
+			return false;
+
+		}
+
+		/**
+		 * Determines whether the current admin page is an edit or add new page.
+		 *
+		 * @return bool
+		 */
+		public function is_edit_or_new_page() {
+			global $pagenow;
+
+			if ( ! is_admin() || $this->post_type !== $this->get_post_type() ) {
+				return false;
+			}
+
+			return ( 'post.php' === $pagenow || 'post-new.php' === $pagenow );
+		}
+
+		/**
+		 * Determines whether the current admin page is the add new page.
+		 *
+		 * @return bool
+		 */
+		public function is_new_page() {
+			global $pagenow;
+
+			if ( ! is_admin() || $this->post_type !== $this->get_post_type() ) {
+				return false;
+			}
+
+			return ( 'post-new.php' === $pagenow );
+		}
+
+		/**
+		 * Determines whether the current admin page is the edit page.
+		 *
+		 * @return bool
+		 */
+		public function is_edit_page() {
+			global $pagenow;
+
+			if ( ! is_admin() || $this->post_type !== $this->get_post_type() ) {
+				return false;
+			}
+
+			return ( 'post.php' === $pagenow );
 		}
 	}
 }
