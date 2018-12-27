@@ -25,6 +25,7 @@
     "wpsmith/schema": "dev-master",
     "wpsmith/singleton": "dev-master",
     "wpsmith/templates": "dev-master"
+    "wpsmith/registerable": "dev-master"
   },
   "autoload": {
     "psr-4": {
