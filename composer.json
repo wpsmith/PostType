@@ -3,7 +3,10 @@
   "description": "WordPress Post Type.",
   "keywords": [
     "wordpress",
-    "widgets"
+    "post type",
+    "posttype",
+    "posttypes",
+    "post types"
   ],
   "homepage": "https://github.com/wpsmith/PostType",
   "license": "GPL-2.0+",
