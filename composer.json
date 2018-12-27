@@ -26,7 +26,7 @@
     "wpsmith/fields": "dev-master",
     "wpsmith/functions": "dev-master",
     "wpsmith/schema": "dev-master",
-    "wpsmith/singleton": "dev-master",
+    "wpsmith/singleton": "^1.0.0",
     "wpsmith/templates": "dev-master",
     "wpsmith/registerable": "dev-master"
   },
