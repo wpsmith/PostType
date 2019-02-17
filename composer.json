@@ -27,7 +27,8 @@
     "wpsmith/functions": "dev-master",
     "wpsmith/singleton": "^1.0.0",
     "wpsmith/templates": "dev-master",
-    "wpsmith/registerable": "dev-master"
+    "wpsmith/registerable": "dev-master",
+    "wpsmith/utils": "dev-master"
   },
   "autoload": {
     "psr-4": {
