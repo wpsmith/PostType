@@ -32,7 +32,7 @@
   },
   "autoload": {
     "psr-4": {
-      "WPS\\PostTypes\\": "src/"
+      "WPS\\WP\\PostTypes\\": "src/"
     }
   }
 }
